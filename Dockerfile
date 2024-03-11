@@ -37,11 +37,7 @@ ARG GID=1000
 RUN groupadd -g $GID refiner \
     && useradd -u $UID -g $GID --home-dir /mix --no-create-home refiner
 
-WORKDIR /home/refiner
-ENV MIX_HOME=/mix/.mix
-RUN mix local.hex --force
-RUN mix local.rebar --force
-
+WORKDIR /mix
 COPY --from=builder-elixir /mix/_build /mix/_build
 COPY --from=builder-elixir /mix/config /mix/config
 COPY --from=builder-elixir /mix/deps /mix/deps
@@ -53,11 +49,16 @@ COPY --from=builder-elixir /mix/mix.lock /mix/
 COPY --from=builder-elixir /mix/test/ /mix/test
 COPY --from=builder-elixir /mix/test-data/ /mix/test-data
 
+ENV MIX_HOME=/mix/.mix
+RUN mix local.hex --force \
+    && mix local.rebar --force \
+    && mix release --overwrite
 # Used only for testing in compose
 # CMD [ "mix", "test", "./test/block_specimen_decoder_test.exs", "./test/block_result_uploader_test.exs"]
 
 RUN chown -R refiner:refiner /mix
 CMD ["/mix/prod/bin/refiner", "start"]
 USER refiner
+
 
 EXPOSE 9568
