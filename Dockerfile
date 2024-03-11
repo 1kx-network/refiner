@@ -32,7 +32,13 @@ RUN apt-get update && apt-get install -y git bash curl netcat-traditional && apt
 RUN mkdir -p /mix/_build /mix/config /mix/deps /mix/lib /mix/priv node/test /mix/test-data
 # used in case alpine image are used
 # RUN apk update && apk add --no-cache git=2.36.3-r0 bash=5.1.16-r2 curl=7.83.1-r4 go=1.18.7-r0 make=4.3-r0 gcc=11.2.1_git20220219-r2
-WORKDIR /app
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g $GID refiner \
+    && useradd -u $UID -g $GID --home-dir /mix --no-create-home refiner
+
+WORKDIR /home/refiner
+ENV MIX_HOME=/mix/.mix
 RUN mix local.hex --force
 RUN mix local.rebar --force
 
@@ -50,6 +56,8 @@ COPY --from=builder-elixir /mix/test-data/ /mix/test-data
 # Used only for testing in compose
 # CMD [ "mix", "test", "./test/block_specimen_decoder_test.exs", "./test/block_result_uploader_test.exs"]
 
+RUN chown -R refiner:refiner /mix
 CMD ["/mix/prod/bin/refiner", "start"]
+USER refiner
 
 EXPOSE 9568
